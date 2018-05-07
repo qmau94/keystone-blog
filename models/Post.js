@@ -1,10 +1,17 @@
 var keystone = require('keystone');
 var Types = keystone.Field.Types;
 
-/**
- * Post Model
- * ==========
- */
+var storage = new keystone.Storage({
+	adapter: keystone.Storage.Adapters.FS,
+	fs: {
+		path: keystone.expandPath('./public/uploads'),
+		publicPath: '/uploads/',
+	},
+	schema: {
+		originalname: true,
+		url: true,
+	},
+});
 
 var Post = new keystone.List('Post', {
 	map: { name: 'title' },
@@ -16,13 +23,17 @@ Post.add({
 	state: { type: Types.Select, options: 'draft, published, archived', default: 'draft', index: true },
 	author: { type: Types.Relationship, ref: 'User', index: true },
 	publishedDate: { type: Types.Date, index: true, dependsOn: { state: 'published' } },
-	image: { type: Types.CloudinaryImage },
+	image: {
+		type: Types.File,
+		storage: storage,
+	},
 	content: {
-		brief: { type: Types.Html, wysiwyg: true, height: 150 },
-		extended: { type: Types.Html, wysiwyg: true, height: 400 },
+		brief: { type: Types.Markdown, html: String, md: String, height: 400, toolbarOptions: { hiddenButtons: 'H1,H6,Code' } },
+		extended: { type: Types.Markdown, html: String, md: String, height: 400, toolbarOptions: { hiddenButtons: 'H1,H6,Code' } },
 	},
 	categories: { type: Types.Relationship, ref: 'PostCategory', many: true },
 	tags: { type: Types.Relationship, ref: 'PostTag', many: true },
+	views: { type: Number, default: 0 },
 });
 
 Post.schema.virtual('content.full').get(function () {
